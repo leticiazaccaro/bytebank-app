@@ -19,6 +19,14 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app ./
+# next.config.ts's rewrites() runs during `next build` (it's serialized into
+# .next/routes-manifest.json, not re-evaluated by `next start`/server.js) —
+# so the zone origins must be available as build args, not just as runtime
+# `environment:` on the container. See docker-compose.yml.
+ARG MF_DASHBOARD_ORIGIN
+ARG MF_TRANSACTIONS_ORIGIN
+ENV MF_DASHBOARD_ORIGIN=${MF_DASHBOARD_ORIGIN}
+ENV MF_TRANSACTIONS_ORIGIN=${MF_TRANSACTIONS_ORIGIN}
 RUN npm run build -w apps/shell
 # apps/shell has no public/ assets yet — the runner stage's COPY expects the
 # directory to exist regardless (per the local docs' standalone-output note).
