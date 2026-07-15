@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Table, TableColumn } from '@repo/ui/Table/Table'
 import { Select } from '@repo/ui/Select/Select'
 import { Input } from '@repo/ui/Input/Input'
@@ -13,6 +13,11 @@ import { type CategoryFilter } from './filterByCategory'
 import { type DateRange } from './filterByDateRange'
 import { applyFilters } from './applyFilters'
 import { useDebouncedValue } from './useDebouncedValue'
+import { nextVisibleCount } from './nextVisibleCount'
+
+// TXN-06: initial page size for the infinite-scroll window over the
+// already-fully-loaded dataset.
+const PAGE_SIZE = 20
 
 // Visual base: src/components/features/TransactionList/TransactionList.tsx
 // (Fase 01) — adapted to the real API's shape (design.md "apps/mf-transactions"):
@@ -58,6 +63,38 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
     dateRange,
     search: debouncedSearch,
   })
+
+  // TXN-06: infinite scroll over `filtered` — no re-fetch, the API already
+  // returned the complete list (design.md). Resetting `visibleCount` when
+  // the active filters change is done during render (React's documented
+  // "adjusting state when a prop changes" pattern), not in an effect, so it
+  // doesn't trigger a synchronous setState-in-effect cascade.
+  const filterKey = `${typeFilter}|${categoryFilter}|${dateRange.from}|${dateRange.to}|${debouncedSearch}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setVisibleCount(PAGE_SIZE)
+  }
+
+  const visible = filtered.slice(0, visibleCount)
+  const hasMore = visibleCount < filtered.length
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!hasMore) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        setVisibleCount((count) => nextVisibleCount(count, filtered.length, PAGE_SIZE))
+      }
+    })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, filtered.length])
 
   function clearFilters() {
     setTypeFilter('all')
@@ -179,7 +216,13 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
           </button>
         </div>
       ) : (
-        <Table columns={columns} data={filtered} />
+        <>
+          <Table columns={columns} data={visible} />
+          {/* TXN-06: sentinel observed by IntersectionObserver — reaching it
+              reveals the next page over the already-loaded dataset, no
+              re-fetch. Only rendered while there's more to reveal. */}
+          {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-1" />}
+        </>
       )}
     </div>
   )
