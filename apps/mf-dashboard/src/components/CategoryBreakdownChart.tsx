@@ -2,13 +2,37 @@
 
 import { useEffect, useState } from 'react'
 import { ResponsivePie } from '@nivo/pie'
+import { formatBRL } from '@repo/shared/formatters'
 import { getCategoryIndex } from '@repo/shared/categoryIndex'
 import type { CategoryIndex } from '@repo/shared/categoryIndex'
 import type { Transaction } from '@repo/shared/types'
-import { deriveCategoryBreakdown } from './deriveCategoryBreakdown'
+import { deriveCategoryBreakdown, type CategorySlice } from './deriveCategoryBreakdown'
 
 interface CategoryBreakdownChartProps {
   transactions: Transaction[]
+}
+
+// T47 audit finding: unlike @nivo/line's ResponsiveLine (see BalanceChart.tsx),
+// @nivo/pie's ResponsivePie ships no `isFocusable`/keyboard-focus prop at all
+// (verified in its source/type definitions) — there is no way to make an
+// individual arc keyboard-reachable via Nivo's own API. This sr-only list is
+// the text alternative: every value the pie chart encodes visually is also
+// reachable by a screen reader in linear reading order, satisfying HOME-04's
+// intent (an exact value per segment) even though the interactive SVG itself
+// has no native on-focus tooltip.
+// SPEC_DEVIATION: HOME-04 describes a tooltip that appears "ao focar" a
+// segment; @nivo/pie has no keyboard-focus API to hook that into. Mitigated
+// with an always-present accessible text equivalent instead.
+function CategoryBreakdownList({ title, slices }: { title: string; slices: CategorySlice[] }) {
+  return (
+    <ul className="sr-only">
+      {slices.map((slice) => (
+        <li key={slice.label}>
+          {title} — {slice.label}: {formatBRL(slice.value)}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 // HOME-02: entradas vs. saídas por categoria. The local category index only
@@ -58,6 +82,7 @@ export function CategoryBreakdownChart({ transactions }: CategoryBreakdownChartP
               innerRadius={0.5}
               arcLabelsSkipAngle={10}
             />
+            <CategoryBreakdownList title="Entradas por categoria" slices={credit} />
           </div>
         )}
       </div>
@@ -75,6 +100,7 @@ export function CategoryBreakdownChart({ transactions }: CategoryBreakdownChartP
               innerRadius={0.5}
               arcLabelsSkipAngle={10}
             />
+            <CategoryBreakdownList title="Saídas por categoria" slices={debit} />
           </div>
         )}
       </div>
