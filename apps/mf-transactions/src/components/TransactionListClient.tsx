@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Table, TableColumn } from '@repo/ui/Table/Table'
 import { Select } from '@repo/ui/Select/Select'
 import { Input } from '@repo/ui/Input/Input'
 import { FAB } from '@repo/ui/FAB/FAB'
+import { LiveRegion } from '@repo/ui/LiveRegion/LiveRegion'
 import { formatBRL, formatDate } from '@repo/shared/formatters'
 import { CATEGORIES } from '@repo/shared/categories'
 import { getCategoryIndex, type CategoryIndex } from '@repo/shared/categoryIndex'
@@ -17,6 +19,7 @@ import { useDebouncedValue } from './useDebouncedValue'
 import { nextVisibleCount } from './nextVisibleCount'
 import { TransactionFormModal } from './TransactionFormModal/TransactionFormModal'
 import { DeleteConfirmationModal } from './DeleteConfirmationModal'
+import type { RootState } from '@/store/store'
 
 // TXN-06: initial page size for the infinite-scroll window over the
 // already-fully-loaded dataset.
@@ -66,6 +69,10 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
   // the tree, and this component has callers/tests that render it without one.
   const [formTarget, setFormTarget] = useState<Transaction | 'new' | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
+  // A11Y-03/API-05: surfaces the error middleware's message (T43) — set by
+  // any failed query/mutation across this zone's store, not just ones
+  // triggered from this component — to an assertive live region.
+  const errorMessage = useSelector((state: RootState) => state.uiError.message)
   // Every transaction in this zone belongs to the same account (the API has
   // no multi-account concept here — see apiClient.ts's fetchStatement, which
   // always resolves accounts[0]); reused as the account a newly created
@@ -191,6 +198,7 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
 
   return (
     <div className="flex flex-col gap-4">
+      <LiveRegion message={errorMessage} politeness="assertive" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-center gap-2" role="group" aria-label="Filtrar por tipo">
           {TYPE_FILTERS.map((option) => (

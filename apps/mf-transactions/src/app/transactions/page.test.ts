@@ -1,4 +1,6 @@
+import { createElement, type ComponentProps, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { Provider } from 'react-redux'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@repo/shared/auth', () => ({
@@ -11,7 +13,18 @@ vi.mock('@repo/shared/apiClient', () => ({
 import { fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
 import type { Transaction } from '@repo/shared/types'
+import { makeStore } from '@/store/store'
 import TransactionsPage from './page'
+
+// T46: the non-empty and empty-state renders resolve to TransactionListClient,
+// which now reads `uiError.message` via `useSelector` (LiveRegion wiring,
+// A11Y-03) — needs a Provider in the tree, same as the real StoreProvider in
+// layout.tsx (page.tsx itself renders no Provider).
+function renderWithStore(element: ReactElement): string {
+  return renderToStaticMarkup(
+    createElement(Provider, { store: makeStore() } as ComponentProps<typeof Provider>, element)
+  )
+}
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return {
@@ -40,7 +53,7 @@ describe('TransactionsPage', () => {
     ])
 
     const element = await TransactionsPage()
-    const html = renderToStaticMarkup(element)
+    const html = renderWithStore(element)
 
     expect(html).toContain('Salário')
     expect(html).toContain('Mercado')
@@ -52,7 +65,7 @@ describe('TransactionsPage', () => {
     vi.mocked(fetchStatement).mockResolvedValue([])
 
     const element = await TransactionsPage()
-    const html = renderToStaticMarkup(element)
+    const html = renderWithStore(element)
 
     expect(html).toContain('Você ainda não tem transações.')
   })

@@ -7,11 +7,10 @@
 // hooks, which need a Provider in the tree.
 import { act, createElement, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Transaction } from '@repo/shared/types'
-import { transactionsApi } from '@/store/transactionsApi'
+import { makeStore } from '@/store/store'
 import { TransactionListClient } from './TransactionListClient'
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -36,11 +35,12 @@ class LocalOriginRequest extends RealRequest {
   }
 }
 
+// T46: TransactionListClient now reads `uiError.message` via `useSelector`
+// (LiveRegion wiring, A11Y-03) — reuses the real `makeStore()` (same one
+// `StoreProvider` uses in layout.tsx) instead of a hand-rolled store missing
+// that reducer.
 function makeTestStore() {
-  return configureStore({
-    reducer: { [transactionsApi.reducerPath]: transactionsApi.reducer },
-    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(transactionsApi.middleware),
-  })
+  return makeStore()
 }
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -158,6 +158,47 @@ describe('TransactionListClient — "Nova transação" control (FORM-01)', () =>
     // A successful save also closes the modal and returns to the list, same
     // as cancelling — no full page reload, no dialog left open.
     expect(document.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it('announces a failed create via the list-level live region (A11Y-03, T43/T46)', async () => {
+    const store = makeTestStore()
+    const transactions = [tx({ id: 't1', accountId: 'acc-42', from: 'Salário', value: 3500 })]
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(502, { message: 'Não foi possível criar a transação.' }))
+
+    renderList(store, { initialData: transactions })
+
+    act(() => {
+      findButtonByAriaLabel('Nova transação').click()
+    })
+
+    const setSelectValue = (el: HTMLSelectElement, value: string) => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')!.set!
+      setter.call(el, value)
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+    const setInputValue = (el: HTMLInputElement, value: string) => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!
+      setter.call(el, value)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    setSelectValue(document.body.querySelector('#transaction-type') as HTMLSelectElement, 'Credit')
+    setInputValue(document.body.querySelector('#transaction-description') as HTMLInputElement, 'Uber')
+    setInputValue(document.body.querySelector('#transaction-value') as HTMLInputElement, '10')
+
+    await act(async () => {
+      const form = document.querySelector('[role="dialog"] form')!
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    // The list-level live region (outside the modal, rendered by
+    // TransactionListClient itself) picks up the error middleware's message
+    // from the shared store — not a message owned by the form.
+    const region = container.querySelector('[aria-live="assertive"]')
+    expect(region?.textContent).toBe('Não foi possível criar a transação.')
   })
 })
 

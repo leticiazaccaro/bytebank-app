@@ -108,6 +108,25 @@ describe('TransactionFormModal (create mode)', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
+  it('announces blocked-submit field errors via an assertive live region (A11Y-03)', () => {
+    const store = makeTestStore()
+    const onClose = vi.fn()
+
+    renderModal(store, { isOpen: true, onClose, accountId: 'acc-1' })
+
+    const region = document.body.querySelector('[aria-live="assertive"]')
+    expect(region).not.toBeNull()
+    expect(region?.textContent).toBe('')
+
+    act(() => {
+      clickSubmit(document.body)
+    })
+
+    expect(region?.textContent).toContain('Selecione o tipo de transação.')
+    expect(region?.textContent).toContain('Informe a descrição.')
+    expect(region?.textContent).toContain('Informe o valor.')
+  })
+
   it('blocks submit and shows a field error for a non-numeric value (FORM-02)', () => {
     const store = makeTestStore()
     const onClose = vi.fn()

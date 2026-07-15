@@ -4,10 +4,12 @@
 // no effects) — infinite scroll needs a real mount so the sentinel ref
 // attaches and the IntersectionObserver effect actually runs. Scoped to
 // this file only; the rest of the app's tests keep running under 'node'.
-import { act, createElement } from 'react'
+import { act, createElement, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { Provider } from 'react-redux'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Transaction } from '@repo/shared/types'
+import { makeStore } from '@/store/store'
 import { TransactionListClient } from './TransactionListClient'
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -58,7 +60,13 @@ describe('TransactionListClient infinite scroll (TXN-06)', () => {
     )
 
     act(() => {
-      root.render(createElement(TransactionListClient, { initialData: transactions }))
+      root.render(
+        createElement(
+          Provider,
+          { store: makeStore() } as ComponentProps<typeof Provider>,
+          createElement(TransactionListClient, { initialData: transactions })
+        )
+      )
     })
 
     expect(container.querySelectorAll('tbody tr').length).toBe(20)
@@ -82,7 +90,13 @@ describe('TransactionListClient infinite scroll (TXN-06)', () => {
     const transactions = Array.from({ length: 45 }, (_, index) => tx({ id: `t${index}`, date: '2026-01-05' }))
 
     act(() => {
-      root.render(createElement(TransactionListClient, { initialData: transactions }))
+      root.render(
+        createElement(
+          Provider,
+          { store: makeStore() } as ComponentProps<typeof Provider>,
+          createElement(TransactionListClient, { initialData: transactions })
+        )
+      )
     })
 
     act(() => {

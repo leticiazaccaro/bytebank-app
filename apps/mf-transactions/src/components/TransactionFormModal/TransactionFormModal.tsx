@@ -5,6 +5,7 @@ import { Modal } from '@repo/ui/Modal/Modal'
 import { Input } from '@repo/ui/Input/Input'
 import { Select } from '@repo/ui/Select/Select'
 import { Button } from '@repo/ui/Button/Button'
+import { LiveRegion } from '@repo/ui/LiveRegion/LiveRegion'
 import type { CreateTransactionInput } from '@repo/shared/apiClient'
 import { CATEGORIES, suggestCategory } from '@repo/shared/categories'
 import { getCategoryIndex, setCategoryForTransaction } from '@repo/shared/categoryIndex'
@@ -145,8 +146,15 @@ export function TransactionFormModal({ isOpen, onClose, accountId, transaction }
     }
   }
 
+  // A11Y-03: announces every blocked-submit field error together, in
+  // addition to the inline per-field messages already rendered by
+  // Input/Select's own `error` prop — the inline text alone isn't
+  // guaranteed to be announced by a screen reader on a blocked submit.
+  const errorAnnouncement = Object.values(errors).length > 0 ? Object.values(errors).join(' ') : null
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isEditMode ? 'Editar transação' : 'Nova transação'}>
+      <LiveRegion message={errorAnnouncement} politeness="assertive" />
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <Select
           id="transaction-type"
