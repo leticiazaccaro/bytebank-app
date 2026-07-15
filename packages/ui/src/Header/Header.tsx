@@ -1,4 +1,7 @@
+'use client'
+
 import { BankLogo } from './BankLogo'
+import { logout } from './logout'
 
 // Home ("/") and Transactions ("/transactions") live in different Next.js
 // Multi-Zones apps (design.md AD-001) — usePathname() can't detect the
@@ -75,6 +78,15 @@ export function Header({ activeZone }: HeaderProps) {
               </a>
             )
           })}
+          <button
+            type="button"
+            onClick={() => {
+              void logout()
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            Sair
+          </button>
         </nav>
       </div>
     </header>

@@ -1,4 +1,7 @@
+'use client'
+
 import type { ActiveZone } from '../Header/Header'
+import { logout } from '../Header/logout'
 
 // See Header.tsx for why links are plain <a> tags and activeZone is passed
 // in as a prop (Home and Transactions are different Multi-Zones apps).
@@ -72,6 +75,18 @@ export function BottomNav({ activeZone }: BottomNavProps) {
             </a>
           )
         })}
+        <button
+          type="button"
+          onClick={() => {
+            void logout()
+          }}
+          className="flex-1 flex flex-col items-center justify-center gap-1 text-neutral-300 hover:text-white transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span className="text-[10px] font-medium">Sair</span>
+        </button>
       </div>
     </nav>
   )
