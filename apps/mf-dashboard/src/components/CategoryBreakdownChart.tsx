@@ -19,6 +19,13 @@ export function CategoryBreakdownChart({ transactions }: CategoryBreakdownChartP
   const [categoryIndex, setCategoryIndex] = useState<CategoryIndex>({})
 
   useEffect(() => {
+    // One-shot read of the localStorage-backed category index after mount.
+    // useSyncExternalStore isn't a fit here without adding snapshot-caching
+    // machinery to packages/shared's getCategoryIndex() (it re-parses JSON
+    // and returns a new object on every call, breaking that hook's
+    // reference-stability contract) — this causes exactly one extra render
+    // right after mount, not a cascading chain.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategoryIndex(getCategoryIndex())
   }, [])
 
