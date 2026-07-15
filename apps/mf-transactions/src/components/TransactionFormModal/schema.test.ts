@@ -42,6 +42,19 @@ describe('transactionFormSchema', () => {
     expect(fieldErrors(result)).toContain('value')
   })
 
+  it('normalizes a negative value to its positive magnitude instead of blocking it (API-06)', () => {
+    const result = transactionFormSchema.safeParse({
+      type: 'Debit',
+      description: 'Mercado',
+      value: -75.3,
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.value).toBe(75.3)
+    }
+  })
+
   it('accepts a fully valid payload', () => {
     const result = transactionFormSchema.safeParse({
       type: 'Credit',
