@@ -1,0 +1,26 @@
+# Build context for all apps/*/Dockerfile (context = repo root, per
+# design.md Tech Decisions: multi-stage deps -> builder -> runner).
+# Mirrors .gitignore for the pieces that must never end up in an image layer.
+
+node_modules/
+**/node_modules/
+
+.next/
+**/.next/
+
+.git/
+.specs/
+.claude/
+.agents/
+
+coverage/
+test-results/
+playwright-report/
+blob-report/
+storybook-static/
+
+*.tsbuildinfo
+next-env.d.ts
+
+.DS_Store
+npm-debug.log*
