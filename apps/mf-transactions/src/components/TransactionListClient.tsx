@@ -8,9 +8,11 @@ import { formatBRL, formatDate } from '@repo/shared/formatters'
 import { CATEGORIES } from '@repo/shared/categories'
 import { getCategoryIndex, type CategoryIndex } from '@repo/shared/categoryIndex'
 import type { Transaction } from '@repo/shared/types'
-import { filterByType, type TypeFilter } from './filterByType'
-import { filterByCategory, type CategoryFilter } from './filterByCategory'
-import { filterByDateRange, type DateRange } from './filterByDateRange'
+import { type TypeFilter } from './filterByType'
+import { type CategoryFilter } from './filterByCategory'
+import { type DateRange } from './filterByDateRange'
+import { applyFilters } from './applyFilters'
+import { useDebouncedValue } from './useDebouncedValue'
 
 // Visual base: src/components/features/TransactionList/TransactionList.tsx
 // (Fase 01) — adapted to the real API's shape (design.md "apps/mf-transactions"):
@@ -36,6 +38,9 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
   const [dateRange, setDateRange] = useState<DateRange>({ from: '', to: '' })
+  const [searchInput, setSearchInput] = useState('')
+  // TXN-04: 300ms debounce before the search term feeds into filtering.
+  const debouncedSearch = useDebouncedValue(searchInput, 300)
   // localStorage isn't available during SSR — the lazy initializer only
   // reads it on the client (typeof window guard), same constraint as any
   // localStorage-backed state in an app-router Client Component. Safe from
@@ -46,10 +51,20 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
     typeof window === 'undefined' ? {} : getCategoryIndex()
   )
 
-  const filtered = filterByDateRange(
-    filterByCategory(filterByType(initialData, typeFilter), categoryIndex, categoryFilter),
-    dateRange
-  )
+  // TXN-05: applyFilters combines every active filter with AND.
+  const filtered = applyFilters(initialData, categoryIndex, {
+    type: typeFilter,
+    category: categoryFilter,
+    dateRange,
+    search: debouncedSearch,
+  })
+
+  function clearFilters() {
+    setTypeFilter('all')
+    setCategoryFilter('all')
+    setDateRange({ from: '', to: '' })
+    setSearchInput('')
+  }
 
   const columns: TableColumn<Transaction>[] = [
     {
@@ -140,11 +155,32 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
         </div>
       </div>
 
-      <Table
-        columns={columns}
-        data={filtered}
-        emptyMessage="Nenhuma transação encontrada para o filtro selecionado."
+      <Input
+        label="Buscar"
+        type="search"
+        placeholder="Buscar por remetente ou destinatário"
+        value={searchInput}
+        onChange={(event) => setSearchInput(event.target.value)}
       />
+
+      {/* TXN-07: dedicated empty state with a "clear filters" action —
+          initialData is always non-empty here (page.tsx already handles the
+          "no transactions at all" case), so an empty `filtered` list can
+          only mean the active filters/search excluded everything. */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-neutral-600">Nenhuma transação encontrada para os filtros aplicados.</p>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-primary font-medium underline cursor-pointer"
+          >
+            Limpar filtros
+          </button>
+        </div>
+      ) : (
+        <Table columns={columns} data={filtered} />
+      )}
     </div>
   )
 }

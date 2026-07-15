@@ -31,9 +31,10 @@ describe('TransactionListClient', () => {
     expect(html).toContain('Débito')
   })
 
-  it('renders the empty-table message when initialData has no transactions', () => {
+  it('renders the empty state with a "clear filters" action when there are no results (TXN-07)', () => {
     const html = renderToStaticMarkup(createElement(TransactionListClient, { initialData: [] }))
 
-    expect(html).toContain('Nenhuma transação encontrada para o filtro selecionado.')
+    expect(html).toContain('Nenhuma transação encontrada para os filtros aplicados.')
+    expect(html).toContain('Limpar filtros')
   })
 })
