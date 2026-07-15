@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@nivo/line": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
     "@repo/shared": "*",
     "@repo/ui": "*",
     "next": "16.2.4",
