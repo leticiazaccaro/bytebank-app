@@ -1,6 +1,11 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Docker: self-hosting.md / output.md (local Next docs) — emits
+  // .next/standalone with only the files needed to run `node server.js`,
+  // used by apps/mf-transactions/Dockerfile's `runner` stage (design.md Tech
+  // Decisions).
+  output: 'standalone',
   // @repo/ui and @repo/shared ship raw TypeScript source (no pre-build step)
   // — Next must transpile them itself, same pattern as apps/shell and
   // apps/mf-dashboard.
