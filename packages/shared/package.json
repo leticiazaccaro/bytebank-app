@@ -9,6 +9,9 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run"
   },
+  "dependencies": {
+    "next": "16.2.4"
+  },
   "devDependencies": {
     "jsdom": "^29.1.1"
   }
