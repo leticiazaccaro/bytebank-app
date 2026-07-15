@@ -1,7 +1,7 @@
 import { fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
-import { formatBRL, formatDate } from '@repo/shared/formatters'
 import type { Transaction } from '@repo/shared/types'
+import { TransactionListClient } from '@/components/TransactionListClient'
 
 // Server Component fetches the initial statement directly (apiClient +
 // getSessionToken), never self-fetching this zone's own /api/transactions
@@ -15,12 +15,6 @@ async function loadTransactions(): Promise<Transaction[]> {
   return fetchStatement(token)
 }
 
-// Minimal server-rendered list — T31 replaces this with
-// <TransactionListClient initialData={transactions} /> once that component
-// exists (filters/search/infinite scroll land in T31-T35). This task's own
-// scope is only the initial SSR fetch: rendering the fetched transactions
-// directly in the server-rendered HTML proves there's no client-side
-// loading flash on first paint.
 export default async function TransactionsPage() {
   let transactions: Transaction[]
 
@@ -40,18 +34,9 @@ export default async function TransactionsPage() {
     return <p className="text-neutral-600 py-12 text-center">Você ainda não tem transações.</p>
   }
 
-  return (
-    <ul aria-label="Transações" className="flex flex-col gap-2">
-      {transactions.map((transaction) => (
-        <li
-          key={transaction.id}
-          className="flex justify-between gap-4 border-b border-neutral-200 py-2"
-        >
-          <span>{transaction.from ?? transaction.to ?? '—'}</span>
-          <span>{formatBRL(transaction.value)}</span>
-          <span>{formatDate(transaction.date)}</span>
-        </li>
-      ))}
-    </ul>
-  )
+  // Passed as initialData (design.md "apps/mf-transactions") — rendering the
+  // fetched list directly in the server-rendered HTML is what proves there's
+  // no client-side loading flash on first paint (T30's own scope); filtering
+  // (TXN-01) is TransactionListClient's own client-side state (T31).
+  return <TransactionListClient initialData={transactions} />
 }
