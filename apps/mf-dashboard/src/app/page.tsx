@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { fetchStatement } from '@repo/shared/apiClient'
+import { redirect } from 'next/navigation'
+import { ApiClientError, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
 import type { Transaction } from '@repo/shared/types'
 import { BalanceCard } from '@/components/BalanceCard'
@@ -18,11 +19,17 @@ export default async function DashboardPage() {
 
   try {
     transactions = await loadTransactions()
-  } catch {
+  } catch (error) {
+    // AUTH-05: same 401-vs-network distinction as mf-transactions' error
+    // middleware (T43) — this zone has no RTK Query store (design.md: no
+    // client-side data layer for a single server-fetched page), so the
+    // Server Component itself makes the call directly instead of going
+    // through a rejected-action matcher.
+    if (error instanceof ApiClientError && error.status === 401) {
+      redirect('/login')
+    }
+
     // Generic initial-fetch failure state (Edge Case: "API está fora do ar").
-    // The 401-vs-network distinction and auto-logout/redirect are wired in
-    // T44, which extends this same pattern once the shared error middleware
-    // from T43 exists.
     return (
       <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
         <p className="text-neutral-600">

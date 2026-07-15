@@ -4,12 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@repo/shared/auth', () => ({
   getSessionToken: vi.fn(),
 }))
-vi.mock('@repo/shared/apiClient', () => ({
-  fetchStatement: vi.fn(),
+// T44: preserves the real `ApiClientError` class (page.tsx now does an
+// `instanceof` check against it) while still mocking `fetchStatement`.
+vi.mock('@repo/shared/apiClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@repo/shared/apiClient')>()
+  return { ...actual, fetchStatement: vi.fn() }
+})
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(),
 }))
 
-import { fetchStatement } from '@repo/shared/apiClient'
+import { ApiClientError, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
+import { redirect } from 'next/navigation'
 import { BalanceCard } from '@/components/BalanceCard'
 import { BalanceChart } from '@/components/BalanceChart'
 import { CategoryBreakdownChart } from '@/components/CategoryBreakdownChart'
@@ -96,6 +103,24 @@ describe('DashboardPage', () => {
 
     const element = await DashboardPage()
 
+    expect(findByType(element, BalanceCard)).toBeUndefined()
+    expect(element.props).toMatchObject({ role: 'alert' })
+  })
+
+  it('redirects to /login when the upstream API rejects the session as expired (AUTH-05, T44)', async () => {
+    vi.mocked(fetchStatement).mockRejectedValue(new ApiClientError(401, 'jwt expired'))
+
+    await DashboardPage()
+
+    expect(redirect).toHaveBeenCalledWith('/login')
+  })
+
+  it('renders the retry UI (not a redirect) when the upstream API is down with a non-401 error (API-05, T44)', async () => {
+    vi.mocked(fetchStatement).mockRejectedValue(new ApiClientError(502, 'upstream unavailable'))
+
+    const element = await DashboardPage()
+
+    expect(redirect).not.toHaveBeenCalled()
     expect(findByType(element, BalanceCard)).toBeUndefined()
     expect(element.props).toMatchObject({ role: 'alert' })
   })
