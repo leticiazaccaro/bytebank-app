@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Header } from '@repo/ui/Header/Header'
 import { BottomNav } from '@repo/ui/BottomNav/BottomNav'
+import { StoreProvider } from '@/store/StoreProvider'
 
 export const metadata: Metadata = {
   title: 'ByteBank — Transações',
@@ -17,7 +18,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             in the shell's own layout (same pattern as apps/mf-dashboard). */}
         <Header activeZone="transactions" />
         <main className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-10 lg:px-6 pt-5 pb-24 md:py-8">
-          {children}
+          {/* design.md AD-002: RTK Query only runs in Client Components —
+              StoreProvider scopes the store to this zone's page content
+              (Header/BottomNav are pure nav, no store access needed). */}
+          <StoreProvider>{children}</StoreProvider>
         </main>
         <BottomNav activeZone="transactions" />
       </body>
