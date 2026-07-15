@@ -6,6 +6,9 @@ import { Input } from '@repo/ui/Input/Input'
 import { Select } from '@repo/ui/Select/Select'
 import { Button } from '@repo/ui/Button/Button'
 import type { CreateTransactionInput } from '@repo/shared/apiClient'
+import { CATEGORIES, suggestCategory } from '@repo/shared/categories'
+import { setCategoryForTransaction } from '@repo/shared/categoryIndex'
+import type { CategoryId } from '@repo/shared/types'
 import { useCreateTransactionMutation } from '@/store/transactionsApi'
 import { transactionFormSchema, type TransactionFormInput } from './schema'
 
@@ -26,6 +29,8 @@ const TYPE_OPTIONS = [
   { value: 'Debit', label: 'Débito' },
 ]
 
+const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({ value: category.id, label: category.label }))
+
 function toCreateTransactionInput(data: TransactionFormInput, accountId: string): CreateTransactionInput {
   return {
     accountId,
@@ -39,13 +44,25 @@ export function TransactionFormModal({ isOpen, onClose, accountId }: Transaction
   const [type, setType] = useState<'Debit' | 'Credit' | ''>('')
   const [description, setDescription] = useState('')
   const [value, setValue] = useState('')
+  const [categoryId, setCategoryId] = useState<CategoryId>(suggestCategory(''))
+  // FORM-03: the suggestion is "aceitável/editável (não bloqueante)" — once
+  // the user picks a category directly, further description edits stop
+  // overriding their choice.
+  const [categoryTouched, setCategoryTouched] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [createTransaction, { isLoading }] = useCreateTransactionMutation()
+
+  function handleDescriptionChange(next: string) {
+    setDescription(next)
+    if (!categoryTouched) setCategoryId(suggestCategory(next))
+  }
 
   function resetForm() {
     setType('')
     setDescription('')
     setValue('')
+    setCategoryId(suggestCategory(''))
+    setCategoryTouched(false)
     setErrors({})
   }
 
@@ -67,7 +84,10 @@ export function TransactionFormModal({ isOpen, onClose, accountId }: Transaction
 
     setErrors({})
     try {
-      await createTransaction(toCreateTransactionInput(result.data, accountId)).unwrap()
+      const created = await createTransaction(toCreateTransactionInput(result.data, accountId)).unwrap()
+      // FORM-04: persist the chosen (suggested or overridden) category
+      // against the newly created transaction's id in the local index.
+      setCategoryForTransaction(created.id, categoryId)
       resetForm()
       onClose()
     } catch {
@@ -96,7 +116,7 @@ export function TransactionFormModal({ isOpen, onClose, accountId }: Transaction
           placeholder="Ex: Uber para o trabalho"
           value={description}
           error={errors.description}
-          onChange={(event) => setDescription(event.target.value)}
+          onChange={(event) => handleDescriptionChange(event.target.value)}
         />
 
         <Input
@@ -108,6 +128,17 @@ export function TransactionFormModal({ isOpen, onClose, accountId }: Transaction
           value={value}
           error={errors.value}
           onChange={(event) => setValue(event.target.value)}
+        />
+
+        <Select
+          id="transaction-category"
+          label="Categoria"
+          options={CATEGORY_OPTIONS}
+          value={categoryId}
+          onChange={(event) => {
+            setCategoryId(event.target.value as CategoryId)
+            setCategoryTouched(true)
+          }}
         />
 
         <div className="flex gap-2 pt-2 justify-end">
