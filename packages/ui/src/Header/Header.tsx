@@ -39,7 +39,9 @@ const navLinks: NavLink[] = [
 ]
 
 interface HeaderProps {
-  activeZone: ActiveZone
+  // Optional: apps/shell's own pages (/login, /register) belong to neither
+  // zone, so no nav link should render as active there.
+  activeZone?: ActiveZone
 }
 
 export function Header({ activeZone }: HeaderProps) {

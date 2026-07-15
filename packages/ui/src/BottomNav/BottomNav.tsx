@@ -33,7 +33,9 @@ const navLinks: NavLink[] = [
 ]
 
 interface BottomNavProps {
-  activeZone: ActiveZone
+  // Optional: apps/shell's own pages (/login, /register) belong to neither
+  // zone, so no nav link should render as active there.
+  activeZone?: ActiveZone
 }
 
 export function BottomNav({ activeZone }: BottomNavProps) {

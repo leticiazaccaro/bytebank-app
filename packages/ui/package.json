@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "exports": {
-    "./*": "./src/*"
+    "./*.css": "./src/*.css",
+    "./*": "./src/*.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
