@@ -17,19 +17,74 @@ const sizeClasses = {
   lg: 'max-w-lg',
 }
 
+// A11Y-02: elements a Tab-trap should cycle through — mirrors the standard
+// WAI-ARIA APG dialog pattern's focusable-elements selector.
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+}
+
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isOpen) return
+
+    // A11Y-02: moves focus into the dialog on open, and — via this effect's
+    // cleanup, which React runs both on `isOpen` flipping to false and on
+    // unmount (callers in this codebase close by unmounting `Modal`
+    // entirely, e.g. `{formTarget !== null && <Modal .../>}`) — returns
+    // focus to whatever triggered it.
+    const previouslyFocused = document.activeElement as HTMLElement | null
+    const container = contentRef.current
+    const [firstFocusable] = container ? getFocusableElements(container) : []
+    ;(firstFocusable ?? container)?.focus()
+
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+
+      const dialog = contentRef.current
+      if (!dialog) return
+      const focusable = getFocusableElements(dialog)
+      if (focusable.length === 0) {
+        e.preventDefault()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+
+      if (e.shiftKey) {
+        if (active === first || !dialog.contains(active)) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else if (active === last || !dialog.contains(active)) {
+        e.preventDefault()
+        first.focus()
+      }
     }
+
     document.addEventListener('keydown', handleKey)
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', handleKey)
       document.body.style.overflow = ''
+      previouslyFocused?.focus()
     }
   }, [isOpen, onClose])
 
@@ -45,6 +100,8 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       }}
     >
       <div
+        ref={contentRef}
+        tabIndex={-1}
         className={['bg-white rounded-xl shadow-xl w-full', sizeClasses[size]].join(' ')}
         role="dialog"
         aria-modal="true"
