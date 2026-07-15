@@ -4,7 +4,7 @@
 // TransactionListClient.infiniteScroll.test.ts — this component needs real
 // event dispatch (input/change/submit) and a live Redux store, which
 // renderToStaticMarkup can't exercise.
-import { act, createElement } from 'react'
+import { act, createElement, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
@@ -57,16 +57,21 @@ function clickSubmit(root: HTMLElement) {
 let container: HTMLDivElement
 let root: Root
 
-// `children` is a required prop on react-redux's ProviderProps — passing it
-// as a createElement rest-arg (rather than inline in the props object)
-// doesn't satisfy that type outside JSX, so it's built directly here.
+// `children` is a required prop on react-redux's ProviderProps, but passing
+// it as a literal object key trips `react/no-children-prop` — passed
+// positionally instead, per that rule, with a type cast since a props
+// object without `children` doesn't satisfy ProviderProps outside JSX.
 function renderModal(
   store: ReturnType<typeof makeTestStore>,
   props: { isOpen: boolean; onClose: () => void; accountId: string }
 ) {
   act(() => {
     root.render(
-      createElement(Provider, { store, children: createElement(TransactionFormModal, props) })
+      createElement(
+        Provider,
+        { store } as ComponentProps<typeof Provider>,
+        createElement(TransactionFormModal, props)
+      )
     )
   })
 }

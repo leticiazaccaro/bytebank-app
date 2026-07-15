@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from 'react'
+import { act, createElement, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
@@ -42,13 +42,21 @@ function clickButton(root: HTMLElement, text: string) {
 let container: HTMLDivElement
 let root: Root
 
+// `children` is a required prop on react-redux's ProviderProps, but passing
+// it as a literal object key trips `react/no-children-prop` — passed
+// positionally instead, per that rule, with a type cast since a props
+// object without `children` doesn't satisfy ProviderProps outside JSX.
 function renderModal(
   store: ReturnType<typeof makeTestStore>,
   props: { isOpen: boolean; onClose: () => void; transactionId: string }
 ) {
   act(() => {
     root.render(
-      createElement(Provider, { store, children: createElement(DeleteConfirmationModal, props) })
+      createElement(
+        Provider,
+        { store } as ComponentProps<typeof Provider>,
+        createElement(DeleteConfirmationModal, props)
+      )
     )
   })
 }

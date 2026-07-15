@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from 'react'
+import { act, createElement, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
@@ -51,13 +51,19 @@ function submitForm(root: HTMLElement) {
 let container: HTMLDivElement
 let root: Root
 
+// See TransactionFormModal.test.ts for why `children` is passed positionally
+// (with a type cast) instead of as a literal props key.
 function renderModal(
   store: ReturnType<typeof makeTestStore>,
   props: { isOpen: boolean; onClose: () => void; accountId: string }
 ) {
   act(() => {
     root.render(
-      createElement(Provider, { store, children: createElement(TransactionFormModal, props) })
+      createElement(
+        Provider,
+        { store } as ComponentProps<typeof Provider>,
+        createElement(TransactionFormModal, props)
+      )
     )
   })
 }
