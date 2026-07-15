@@ -9,18 +9,12 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
-    // A11Y-01: fails the Storybook gate on any real axe-core violation
-    // (keyboard/focus-order/ARIA gaps audited in T47) instead of only
-    // logging them. `color-contrast` is disabled here — that rule is
-    // audited and enforced separately in T48, so a still-open contrast gap
-    // at this point in Execute doesn't block T47's own gate.
+    // A11Y-01/A11Y-04: fails the Storybook gate on any real axe-core
+    // violation, including `color-contrast` (T48 fixes the last gaps that
+    // rule found — see theme.css/BottomNav.tsx — so it's enforced here
+    // rather than staying disabled as it was during T47's audit).
     a11y: {
       test: 'error',
-      options: {
-        rules: {
-          'color-contrast': { enabled: false },
-        },
-      },
     },
     backgrounds: {
       default: 'app',

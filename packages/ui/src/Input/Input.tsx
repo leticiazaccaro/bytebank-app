@@ -55,7 +55,12 @@ export function Input({ label, error, hint, icon, iconEnd, id, className = '', .
         )}
       </div>
       {error && <p className="text-xs font-medium text-danger">{error}</p>}
-      {hint && !error && <p className="text-xs text-neutral-400">{hint}</p>}
+      {/* T48 (A11Y-04): text-neutral-400 measured 2.53:1 on white (axe-core),
+          below the 4.5:1 normal-text requirement — neutral-600 passes with
+          margin. Scoped to this usage only (not the shared token): several
+          other text-neutral-400 usages in this codebase are disabled-state
+          indicators, which WCAG exempts from contrast requirements. */}
+      {hint && !error && <p className="text-xs text-neutral-600">{hint}</p>}
     </div>
   )
 }

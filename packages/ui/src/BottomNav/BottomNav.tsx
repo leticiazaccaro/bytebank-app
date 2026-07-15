@@ -51,9 +51,20 @@ export function BottomNav({ activeZone }: BottomNavProps) {
             <a
               key={link.href}
               href={link.href}
+              // T48 (A11Y-04): manually measured (WCAG relative-luminance
+              // formula, cross-checked against axe-core's own reported
+              // ratios on this run's other 4 findings) — the previous
+              // text-primary/text-neutral-500 pair against this bar's
+              // bg-neutral-900 came out at ~3.24:1/~3.67:1, both below the
+              // 4.5:1 normal-text minimum (this is 10px text, not large
+              // text). Not flagged by the automated gate here — a `position:
+              // fixed` element is a known axe/Storybook-iframe blind spot —
+              // but the underlying failure is real. Mirrors Header.tsx's
+              // already-passing active/inactive treatment (text-white /
+              // text-neutral-300) for consistency between the two nav bars.
               className={[
                 'flex-1 flex flex-col items-center justify-center gap-1 transition-colors',
-                active ? 'text-primary' : 'text-neutral-500 hover:text-neutral-300',
+                active ? 'text-white' : 'text-neutral-300 hover:text-white',
               ].join(' ')}
             >
               {link.icon}

@@ -113,7 +113,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           </h2>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
+            // T48 (A11Y-04): a meaningful (non-decorative) icon button —
+            // text-neutral-400 measured 2.53:1 on white, below the 3:1
+            // graphical-component minimum; neutral-500 passes with margin.
+            className="text-neutral-500 hover:text-neutral-700 transition-colors cursor-pointer"
             aria-label="Fechar modal"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

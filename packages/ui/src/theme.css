@@ -8,14 +8,20 @@
   --color-secondary-hover: #162c47;
   --color-secondary-light: #dbeafe;
 
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
+  /* T48 (A11Y-04): danger/success/warning darkened from their original Fase
+     01 shades — the originals read fine as `text-{color}` on white, but
+     failed 4.5:1 as Badge's `text-{color}` on its own `{color}-light`
+     background (axe-core: 3.95/3.0/2.86 respectively, all against a
+     required 4.5:1). Darkening only improves every other existing usage
+     (white text on these as a `bg-*`, or these as text on white). */
+  --color-danger: #b91c1c;
+  --color-danger-hover: #991b1b;
   --color-danger-light: #fee2e2;
 
-  --color-success: #16a34a;
+  --color-success: #166534;
   --color-success-light: #dcfce7;
 
-  --color-warning: #d97706;
+  --color-warning: #92400e;
   --color-warning-light: #fef3c7;
 
   /* Neutrals */

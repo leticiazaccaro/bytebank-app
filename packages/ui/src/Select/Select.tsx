@@ -69,7 +69,11 @@ export function Select({
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+        {/* T48 (A11Y-04): always-rendered (not conditional on the `icon`
+            prop) — a meaningful graphical indicator that this is a dropdown,
+            not decorative. text-neutral-400 measured 2.53:1 on white, below
+            the 3:1 graphical-component minimum; neutral-500 passes. */}
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
