@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Table, TableColumn } from '@repo/ui/Table/Table'
 import { Select } from '@repo/ui/Select/Select'
 import { Input } from '@repo/ui/Input/Input'
+import { FAB } from '@repo/ui/FAB/FAB'
 import { formatBRL, formatDate } from '@repo/shared/formatters'
 import { CATEGORIES } from '@repo/shared/categories'
 import { getCategoryIndex, type CategoryIndex } from '@repo/shared/categoryIndex'
@@ -14,6 +15,8 @@ import { type DateRange } from './filterByDateRange'
 import { applyFilters } from './applyFilters'
 import { useDebouncedValue } from './useDebouncedValue'
 import { nextVisibleCount } from './nextVisibleCount'
+import { TransactionFormModal } from './TransactionFormModal/TransactionFormModal'
+import { DeleteConfirmationModal } from './DeleteConfirmationModal'
 
 // TXN-06: initial page size for the infinite-scroll window over the
 // already-fully-loaded dataset.
@@ -55,6 +58,19 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
   const [categoryIndex] = useState<CategoryIndex>(() =>
     typeof window === 'undefined' ? {} : getCategoryIndex()
   )
+
+  // T58: 'new' opens TransactionFormModal in create mode, a Transaction opens
+  // it in edit mode pre-filled from that row, null keeps it unmounted. Kept
+  // unmounted (not always-mounted-but-closed) when idle — TransactionFormModal
+  // calls RTK Query mutation hooks unconditionally, which need a Provider in
+  // the tree, and this component has callers/tests that render it without one.
+  const [formTarget, setFormTarget] = useState<Transaction | 'new' | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
+  // Every transaction in this zone belongs to the same account (the API has
+  // no multi-account concept here — see apiClient.ts's fetchStatement, which
+  // always resolves accounts[0]); reused as the account a newly created
+  // transaction is filed under.
+  const accountId = initialData[0]?.accountId ?? ''
 
   // TXN-05: applyFilters combines every active filter with AND.
   const filtered = applyFilters(initialData, categoryIndex, {
@@ -143,6 +159,34 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
         </span>
       ),
     },
+    {
+      key: 'actions',
+      header: 'Ações',
+      align: 'right',
+      render: (transaction) => {
+        const label = transaction.from ?? transaction.to ?? 'transação'
+        return (
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setFormTarget(transaction)}
+              aria-label={`Editar transação de ${label}`}
+              className="text-xs font-medium text-primary hover:underline cursor-pointer"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(transaction)}
+              aria-label={`Excluir transação de ${label}`}
+              className="text-xs font-medium text-danger hover:underline cursor-pointer"
+            >
+              Excluir
+            </button>
+          </div>
+        )
+      },
+    },
   ]
 
   return (
@@ -223,6 +267,28 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
               re-fetch. Only rendered while there's more to reveal. */}
           {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-1" />}
         </>
+      )}
+
+      {/* FORM-01: always reachable, regardless of active filters/search —
+          the empty state above only covers "no results for the current
+          filters", not "no way to add a transaction". */}
+      <FAB onClick={() => setFormTarget('new')} />
+
+      {formTarget !== null && (
+        <TransactionFormModal
+          isOpen
+          onClose={() => setFormTarget(null)}
+          accountId={accountId}
+          transaction={formTarget === 'new' ? undefined : formTarget}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmationModal
+          isOpen
+          onClose={() => setDeleteTarget(null)}
+          transactionId={deleteTarget.id}
+        />
       )}
     </div>
   )
