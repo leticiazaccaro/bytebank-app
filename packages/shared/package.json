@@ -1,0 +1,11 @@
+{
+  "name": "@repo/shared",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
