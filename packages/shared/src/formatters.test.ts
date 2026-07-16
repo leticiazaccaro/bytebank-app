@@ -26,4 +26,8 @@ describe('formatDate', () => {
   it('throws on an invalid date input', () => {
     expect(() => formatDate('not-a-date')).toThrow('Invalid time value')
   })
+
+  it('formats a full ISO 8601 datetime string (real API shape) as pt-BR (dd/mm/yyyy)', () => {
+    expect(formatDate('2026-07-15T21:14:00.000Z')).toBe('15/07/2026')
+  })
 })
