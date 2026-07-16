@@ -1,2 +1,6 @@
 @import "tailwindcss";
+/* packages/ui lives outside this app's directory tree, so Tailwind's
+   automatic class-detection never scans it — register it explicitly.
+   https://tailwindcss.com/docs/detecting-classes-in-source-files */
+@source "../../../../packages/ui/src";
 @import "@repo/ui/theme.css";
