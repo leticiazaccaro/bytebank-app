@@ -20,6 +20,7 @@ import { nextVisibleCount } from './nextVisibleCount'
 import { TransactionFormModal } from './TransactionFormModal/TransactionFormModal'
 import { DeleteConfirmationModal } from './DeleteConfirmationModal'
 import type { RootState } from '@/store/store'
+import { useGetTransactionsQuery } from '@/store/transactionsApi'
 
 // TXN-06: initial page size for the infinite-scroll window over the
 // already-fully-loaded dataset.
@@ -73,14 +74,22 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
   // any failed query/mutation across this zone's store, not just ones
   // triggered from this component — to an assertive live region.
   const errorMessage = useSelector((state: RootState) => state.uiError.message)
+  // API-02/T63: subscribes this list to the RTK Query cache so it updates
+  // after create/edit/delete without a full page reload — `data` starts
+  // undefined (no cache entry yet) and `initialData` (the SSR snapshot)
+  // covers first paint; once the query resolves or a mutation invalidates
+  // the `Transaction`/`LIST` tags, `data` reflects the live cache.
+  const { data } = useGetTransactionsQuery()
+  const transactions = data ?? initialData
+
   // Every transaction in this zone belongs to the same account (the API has
   // no multi-account concept here — see apiClient.ts's fetchStatement, which
   // always resolves accounts[0]); reused as the account a newly created
   // transaction is filed under.
-  const accountId = initialData[0]?.accountId ?? ''
+  const accountId = transactions[0]?.accountId ?? ''
 
   // TXN-05: applyFilters combines every active filter with AND.
-  const filtered = applyFilters(initialData, categoryIndex, {
+  const filtered = applyFilters(transactions, categoryIndex, {
     type: typeFilter,
     category: categoryFilter,
     dateRange,

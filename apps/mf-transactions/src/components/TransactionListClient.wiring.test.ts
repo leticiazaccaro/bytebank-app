@@ -118,9 +118,24 @@ describe('TransactionListClient — "Nova transação" control (FORM-01)', () =>
   it('sends the account id derived from the loaded transactions when a new transaction is created', async () => {
     const store = makeTestStore()
     const transactions = [tx({ id: 't1', accountId: 'acc-42', from: 'Salário', value: 3500 })]
-    vi.mocked(fetch).mockResolvedValue(
-      jsonResponse(201, { id: 't2', accountId: 'acc-42', type: 'Credit', value: 10, from: 'Uber', date: '2026-07-15' })
-    )
+    // T63: TransactionListClient now also holds a live `useGetTransactionsQuery`
+    // subscription, so `fetch` receives both that GET (mount, and any refetch
+    // after the create invalidates the LIST tag) and the POST below — routed
+    // by method instead of assuming call order/count.
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const request = input as Request
+      if (request.method === 'POST') {
+        return jsonResponse(201, {
+          id: 't2',
+          accountId: 'acc-42',
+          type: 'Credit',
+          value: 10,
+          from: 'Uber',
+          date: '2026-07-15',
+        })
+      }
+      return jsonResponse(200, transactions)
+    })
 
     renderList(store, { initialData: transactions })
 
@@ -151,8 +166,9 @@ describe('TransactionListClient — "Nova transação" control (FORM-01)', () =>
       await Promise.resolve()
     })
 
-    expect(fetch).toHaveBeenCalledTimes(1)
-    const request = vi.mocked(fetch).mock.calls[0][0] as Request
+    const postCall = vi.mocked(fetch).mock.calls.find(([req]) => (req as Request).method === 'POST')
+    expect(postCall).toBeDefined()
+    const request = postCall![0] as Request
     const body = await request.clone().json()
     expect(body.accountId).toBe('acc-42')
     // A successful save also closes the modal and returns to the list, same
@@ -229,7 +245,15 @@ describe('TransactionListClient — per-row edit/delete actions (FORM-07, API-04
       tx({ id: 't1', type: 'Credit', from: 'Salário', value: 3500 }),
       tx({ id: 't2', type: 'Debit', to: 'Mercado da esquina', value: 240 }),
     ]
-    vi.mocked(fetch).mockResolvedValueOnce(noBodyResponse(204))
+    // T63: TransactionListClient now also holds a live `useGetTransactionsQuery`
+    // subscription, so `fetch` receives both that GET (mount, and any refetch
+    // after the delete invalidates the LIST tag) and the DELETE below — routed
+    // by method instead of assuming call order/count.
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const request = input as Request
+      if (request.method === 'DELETE') return noBodyResponse(204)
+      return jsonResponse(200, transactions)
+    })
 
     renderList(store, { initialData: transactions })
 
@@ -249,8 +273,9 @@ describe('TransactionListClient — per-row edit/delete actions (FORM-07, API-04
       await Promise.resolve()
     })
 
-    expect(fetch).toHaveBeenCalledTimes(1)
-    const request = vi.mocked(fetch).mock.calls[0][0] as Request
+    const deleteCall = vi.mocked(fetch).mock.calls.find(([req]) => (req as Request).method === 'DELETE')
+    expect(deleteCall).toBeDefined()
+    const request = deleteCall![0] as Request
     expect(request.method).toBe('DELETE')
     expect(request.url).toBe('http://localhost/api/transactions/t2')
   })
