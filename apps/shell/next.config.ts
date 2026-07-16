@@ -34,6 +34,16 @@ const nextConfig: NextConfig = {
         source: '/transactions-static/:path+',
         destination: `${transactionsOrigin}/transactions-static/:path+`,
       },
+      // T62: mf-transactions's own /api/transactions Route Handlers (T26/T27)
+      // are called client-side (RTK Query, transactionsApi.ts) via a
+      // relative "/api/transactions" URL, which resolves against the
+      // shell's origin — the only origin the browser ever sees. Without
+      // this rewrite those calls hit the shell itself (no such route)
+      // instead of the zone that owns them.
+      {
+        source: '/api/transactions/:path*',
+        destination: `${transactionsOrigin}/api/transactions/:path*`,
+      },
     ]
   },
 }
