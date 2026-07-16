@@ -23,6 +23,17 @@ const nextConfig: NextConfig = {
       { source: '/', destination: `${dashboardOrigin}/` },
       { source: '/dashboard/:path*', destination: `${dashboardOrigin}/dashboard/:path*` },
       { source: '/transactions/:path*', destination: `${transactionsOrigin}/transactions/:path*` },
+      // T60: each zone's assetPrefix (T19/T25) serves its static JS/CSS
+      // under its own "-static" path to avoid colliding with the other
+      // zone's assets on this shared domain — the shell must also proxy
+      // those paths, or every asset 404s when loaded through the shell
+      // (local Next docs, multi-zones.md "How to route requests to the
+      // right zone").
+      { source: '/dashboard-static/:path+', destination: `${dashboardOrigin}/dashboard-static/:path+` },
+      {
+        source: '/transactions-static/:path+',
+        destination: `${transactionsOrigin}/transactions-static/:path+`,
+      },
     ]
   },
 }
