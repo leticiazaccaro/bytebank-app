@@ -58,7 +58,7 @@ describe('PUT /api/transactions/:id', () => {
   it('updates the transaction and returns it (API-03)', async () => {
     mockCookie('jwt-abc')
     const updated = { id: 't1', accountId: 'acc-1', type: 'Credit', value: 75, date: '2026-01-01' }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, updated))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, { message: 'ok', result: updated }))
 
     const response = await PUT(putRequest({ value: 75 }), ctx('t1'))
 

@@ -44,8 +44,10 @@ describe('GET /api/statement', () => {
       { id: 't1', accountId: 'acc-1', type: 'Credit', value: 100, date: '2024-01-01' },
     ]
     vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse(200, accounts))
-      .mockResolvedValueOnce(jsonResponse(200, transactions))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { message: 'ok', result: { account: accounts, transactions: [], cards: [] } })
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { message: 'ok', result: { transactions } }))
 
     const response = await GET()
 

@@ -41,7 +41,13 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     return undefined as T
   }
 
-  return (await response.json()) as T
+  // The real API wraps every response body in `{ message, result }` — the
+  // actual payload callers care about is always under `result`.
+  const body = (await response.json()) as unknown
+  if (body && typeof body === 'object' && 'result' in body) {
+    return (body as { result: T }).result
+  }
+  return body as T
 }
 
 export interface RegisterInput {
@@ -58,11 +64,9 @@ export async function register(input: RegisterInput): Promise<User> {
   })
 }
 
-export async function login(
-  email: string,
-  password: string
-): Promise<{ token: string; user: User }> {
-  return request<{ token: string; user: User }>('/user/auth', {
+// The real API's /user/auth response only carries a token — no user object.
+export async function login(email: string, password: string): Promise<{ token: string }> {
+  return request<{ token: string }>('/user/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -72,18 +76,25 @@ export async function login(
 /**
  * The API supports a single account per user (see spec.md Out of Scope).
  * Resolves the account via GET /account, then fetches its statement.
+ *
+ * GET /account's `result` nests the account list under `account` (alongside
+ * `transactions`/`cards`, unused here); GET /account/:id/statement's
+ * `result` nests the statement under `transactions` — neither is the bare
+ * array `request<T>`'s generic `.result` unwrap would suggest.
  */
 export async function fetchStatement(token: string): Promise<Transaction[]> {
-  const accounts = await request<Account[]>('/account', {
+  const { account } = await request<{ account: Account[] }>('/account', {
     headers: authHeaders(token),
   })
 
-  const accountId = accounts[0]?.id
+  const accountId = account[0]?.id
   if (!accountId) return []
 
-  return request<Transaction[]>(`/account/${accountId}/statement`, {
-    headers: authHeaders(token),
-  })
+  const { transactions } = await request<{ transactions: Transaction[] }>(
+    `/account/${accountId}/statement`,
+    { headers: authHeaders(token) }
+  )
+  return transactions
 }
 
 export interface CreateTransactionInput {

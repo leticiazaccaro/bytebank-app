@@ -32,7 +32,7 @@ afterEach(() => {
 describe('POST /api/auth/register', () => {
   it('calls the real API and passes through the created user on success (AUTH-01)', async () => {
     const user = { id: 'u1', username: 'ana', email: 'ana@example.com' }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, user))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, { message: 'ok', result: user }))
 
     const response = await POST(
       postRequest({ username: 'ana', email: 'ana@example.com', password: 'secret' })

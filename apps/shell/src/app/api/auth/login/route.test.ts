@@ -30,14 +30,13 @@ afterEach(() => {
 })
 
 describe('POST /api/auth/login', () => {
-  it('sets an httpOnly/secure/sameSite=lax session cookie and returns the user on valid credentials (AUTH-02)', async () => {
-    const payload = { token: 'jwt-abc', user: { id: 'u1', username: 'ana', email: 'ana@example.com' } }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, payload))
+  it('sets an httpOnly/secure/sameSite=lax session cookie and acknowledges success on valid credentials (AUTH-02)', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, { message: 'ok', result: { token: 'jwt-abc' } }))
 
     const response = await POST(loginRequest('ana@example.com', 'secret'))
 
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual(payload.user)
+    await expect(response.json()).resolves.toEqual({ ok: true })
 
     const setCookieHeader = response.headers.get('set-cookie')
     expect(setCookieHeader).toContain('bytebank_session=jwt-abc')

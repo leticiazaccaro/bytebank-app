@@ -53,8 +53,10 @@ describe('GET /api/transactions', () => {
       { id: 't1', accountId: 'acc-1', type: 'Credit', value: 100, date: '2026-01-01' },
     ]
     vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse(200, accounts))
-      .mockResolvedValueOnce(jsonResponse(200, transactions))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { message: 'ok', result: { account: accounts, transactions: [], cards: [] } })
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { message: 'ok', result: { transactions } }))
 
     const response = await GET()
 
@@ -100,7 +102,7 @@ describe('POST /api/transactions', () => {
   it('creates the transaction and returns it (API-02)', async () => {
     mockCookie('jwt-abc')
     const created = { id: 't1', ...validInput, date: '2026-01-01' }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, created))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, { message: 'ok', result: created }))
 
     const response = await POST(postRequest(validInput))
 

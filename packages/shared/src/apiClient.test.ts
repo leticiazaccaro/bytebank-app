@@ -41,7 +41,7 @@ afterEach(() => {
 describe('register', () => {
   it('POSTs to /user with the registration payload and returns the created user', async () => {
     const user = { id: 'u1', username: 'ana', email: 'ana@example.com' }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, user))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, { message: 'ok', result: user }))
 
     const result = await register({ username: 'ana', email: 'ana@example.com', password: 'secret' })
 
@@ -66,9 +66,9 @@ describe('register', () => {
 })
 
 describe('login', () => {
-  it('POSTs to /user/auth and returns { token, user }', async () => {
-    const payload = { token: 'jwt-abc', user: { id: 'u1', username: 'ana', email: 'ana@example.com' } }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, payload))
+  it('POSTs to /user/auth and returns { token } (the real API returns no user object)', async () => {
+    const result_ = { token: 'jwt-abc' }
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, { message: 'ok', result: result_ }))
 
     const result = await login('ana@example.com', 'secret')
 
@@ -79,7 +79,7 @@ describe('login', () => {
         body: JSON.stringify({ email: 'ana@example.com', password: 'secret' }),
       })
     )
-    expect(result).toEqual(payload)
+    expect(result).toEqual(result_)
   })
 
   it('throws ApiClientError on a 401 (invalid credentials) without a client-unsafe leak', async () => {
@@ -97,8 +97,10 @@ describe('fetchStatement', () => {
       { id: 't1', accountId: 'acc-1', type: 'Credit', value: 100, date: '2026-01-01' },
     ]
     vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse(200, accounts))
-      .mockResolvedValueOnce(jsonResponse(200, transactions))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { message: 'ok', result: { account: accounts, transactions: [], cards: [] } })
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { message: 'ok', result: { transactions } }))
 
     const result = await fetchStatement('jwt-abc')
 
@@ -125,7 +127,7 @@ describe('fetchStatement', () => {
 describe('createTransaction', () => {
   it('POSTs to /account/transaction with the bearer token and a positive value', async () => {
     const created = { id: 't1', accountId: 'acc-1', type: 'Debit', value: 50, date: '2026-01-01' }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, created))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(201, { message: 'ok', result: created }))
 
     const result = await createTransaction('jwt-abc', {
       accountId: 'acc-1',
@@ -157,7 +159,7 @@ describe('createTransaction', () => {
 describe('updateTransaction', () => {
   it('PUTs to /account/transaction/:id with a positive value', async () => {
     const updated = { id: 't1', accountId: 'acc-1', type: 'Credit', value: 75, date: '2026-01-01' }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, updated))
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(200, { message: 'ok', result: updated }))
 
     const result = await updateTransaction('jwt-abc', 't1', { value: -75 })
 
