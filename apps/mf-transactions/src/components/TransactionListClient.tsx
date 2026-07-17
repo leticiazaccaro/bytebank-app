@@ -33,6 +33,11 @@ const PAGE_SIZE = 20
 // type is rendered with a small inline style here instead of reusing it.
 interface TransactionListClientProps {
   initialData: Transaction[]
+  // Falls back to transactions[0]?.accountId below when a transaction
+  // already exists — needed as the source of truth when it doesn't (a
+  // brand-new account has no transaction to read one off of, but still
+  // needs an accountId to create its very first one).
+  initialAccountId?: string
 }
 
 const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
@@ -46,7 +51,7 @@ const CATEGORY_OPTIONS = [
   ...CATEGORIES.map((category) => ({ value: category.id, label: category.label })),
 ]
 
-export function TransactionListClient({ initialData }: TransactionListClientProps) {
+export function TransactionListClient({ initialData, initialAccountId }: TransactionListClientProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all')
   const [dateRange, setDateRange] = useState<DateRange>({ from: '', to: '' })
@@ -85,8 +90,9 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
   // Every transaction in this zone belongs to the same account (the API has
   // no multi-account concept here — see apiClient.ts's fetchStatement, which
   // always resolves accounts[0]); reused as the account a newly created
-  // transaction is filed under.
-  const accountId = transactions[0]?.accountId ?? ''
+  // transaction is filed under. Falls back to initialAccountId (fetched
+  // separately by page.tsx) when there's no transaction yet to read one off.
+  const accountId = transactions[0]?.accountId ?? initialAccountId ?? ''
 
   // TXN-05: applyFilters combines every active filter with AND.
   const filtered = applyFilters(transactions, categoryIndex, {
@@ -261,21 +267,25 @@ export function TransactionListClient({ initialData }: TransactionListClientProp
         onChange={(event) => setSearchInput(event.target.value)}
       />
 
-      {/* TXN-07: dedicated empty state with a "clear filters" action —
-          initialData is always non-empty here (page.tsx already handles the
-          "no transactions at all" case), so an empty `filtered` list can
-          only mean the active filters/search excluded everything. */}
+      {/* TXN-07: two distinct empty states — a brand-new account with zero
+          transactions ever (no filters to clear, just an invitation to add
+          the first one via the FAB below) vs. active filters/search that
+          excluded everything from an otherwise non-empty account. */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <p className="text-neutral-600">Nenhuma transação encontrada para os filtros aplicados.</p>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="text-primary font-medium underline cursor-pointer"
-          >
-            Limpar filtros
-          </button>
-        </div>
+        transactions.length === 0 ? (
+          <p className="text-neutral-600 py-12 text-center">Você ainda não tem transações.</p>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <p className="text-neutral-600">Nenhuma transação encontrada para os filtros aplicados.</p>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-primary font-medium underline cursor-pointer"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )
       ) : (
         <>
           <Table columns={columns} data={visible} />

@@ -4,6 +4,7 @@ import {
   ApiClientError,
   createTransaction,
   deleteTransaction,
+  fetchAccountId,
   fetchStatement,
   login,
   register,
@@ -121,6 +122,38 @@ describe('fetchStatement', () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(502, { message: 'upstream unavailable' }))
 
     await expect(fetchStatement('jwt-abc')).rejects.toMatchObject({ status: 502 })
+  })
+})
+
+describe('fetchAccountId', () => {
+  it('resolves the account id via GET /account, independent of any statement — needed to create a brand-new account\'s first transaction', async () => {
+    const accounts = [{ id: 'acc-1', type: 'checking', userId: 'u1' }]
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse(200, { message: 'ok', result: { account: accounts, transactions: [], cards: [] } })
+    )
+
+    const result = await fetchAccountId('jwt-abc')
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.example.com/account',
+      expect.objectContaining({ headers: { Authorization: 'Bearer jwt-abc' } })
+    )
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(result).toBe('acc-1')
+  })
+
+  it('resolves to null when the account list is empty', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse(200, { message: 'ok', result: { account: [], transactions: [], cards: [] } })
+    )
+
+    await expect(fetchAccountId('jwt-abc')).resolves.toBeNull()
+  })
+
+  it('throws ApiClientError on a 5xx (API down / network failure surfaced as a failed response)', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(502, { message: 'upstream unavailable' }))
+
+    await expect(fetchAccountId('jwt-abc')).rejects.toMatchObject({ status: 502 })
   })
 })
 

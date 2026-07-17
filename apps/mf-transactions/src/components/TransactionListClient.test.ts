@@ -48,10 +48,11 @@ describe('TransactionListClient', () => {
     expect(html).toContain('Débito')
   })
 
-  it('renders the empty state with a "clear filters" action when there are no results (TXN-07)', () => {
+  it('renders a "no transactions yet" empty state (not the filtered-empty one) and still shows the FAB for a brand-new account (TXN-07, regression: FAB used to be unreachable here)', () => {
     const html = renderWithStore([])
 
-    expect(html).toContain('Nenhuma transação encontrada para os filtros aplicados.')
-    expect(html).toContain('Limpar filtros')
+    expect(html).toContain('Você ainda não tem transações.')
+    expect(html).not.toContain('Limpar filtros')
+    expect(html).toContain('Nova transação')
   })
 })

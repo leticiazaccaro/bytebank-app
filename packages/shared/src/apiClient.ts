@@ -83,11 +83,7 @@ export async function login(email: string, password: string): Promise<{ token: s
  * array `request<T>`'s generic `.result` unwrap would suggest.
  */
 export async function fetchStatement(token: string): Promise<Transaction[]> {
-  const { account } = await request<{ account: Account[] }>('/account', {
-    headers: authHeaders(token),
-  })
-
-  const accountId = account[0]?.id
+  const accountId = await fetchAccountId(token)
   if (!accountId) return []
 
   const { transactions } = await request<{ transactions: Transaction[] }>(
@@ -95,6 +91,18 @@ export async function fetchStatement(token: string): Promise<Transaction[]> {
     { headers: authHeaders(token) }
   )
   return transactions
+}
+
+/**
+ * Resolves the user's account id via GET /account, independent of any
+ * statement — needed to create the user's very first transaction, when
+ * there's no existing transaction to read an accountId off of.
+ */
+export async function fetchAccountId(token: string): Promise<string | null> {
+  const { account } = await request<{ account: Account[] }>('/account', {
+    headers: authHeaders(token),
+  })
+  return account[0]?.id ?? null
 }
 
 export interface CreateTransactionInput {

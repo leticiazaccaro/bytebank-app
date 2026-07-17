@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { ApiClientError, fetchStatement } from '@repo/shared/apiClient'
+import { ApiClientError, fetchAccountId, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
 import type { Transaction } from '@repo/shared/types'
 import { TransactionListClient } from '@/components/TransactionListClient'
@@ -10,17 +10,29 @@ import { TransactionListClient } from '@/components/TransactionListClient'
 // (T29), not for server-to-server calls. Same pattern as
 // apps/mf-dashboard/src/app/page.tsx (T21). See local Next docs,
 // "backend-for-frontend.md", "Caveats > Server Components".
-async function loadTransactions(): Promise<Transaction[]> {
+//
+// accountId is fetched alongside the statement (not derived from
+// transactions[0]) because a brand-new account has no transaction to read
+// one off of, yet still needs it to create its very first transaction.
+async function loadTransactionsAndAccount(): Promise<{
+  transactions: Transaction[]
+  accountId: string
+}> {
   const token = await getSessionToken()
-  if (!token) return []
-  return fetchStatement(token)
+  if (!token) return { transactions: [], accountId: '' }
+
+  const [transactions, accountId] = await Promise.all([
+    fetchStatement(token),
+    fetchAccountId(token),
+  ])
+  return { transactions, accountId: accountId ?? '' }
 }
 
 export default async function TransactionsPage() {
-  let transactions: Transaction[]
+  let data: { transactions: Transaction[]; accountId: string }
 
   try {
-    transactions = await loadTransactions()
+    data = await loadTransactionsAndAccount()
   } catch (error) {
     // AUTH-05: same 401-vs-network distinction as mf-dashboard's page.tsx
     // (T44) — an expired/invalid session sends the user to log in again
@@ -38,13 +50,9 @@ export default async function TransactionsPage() {
     )
   }
 
-  if (transactions.length === 0) {
-    return <p className="text-neutral-600 py-12 text-center">Você ainda não tem transações.</p>
-  }
-
-  // Passed as initialData (design.md "apps/mf-transactions") — rendering the
-  // fetched list directly in the server-rendered HTML is what proves there's
-  // no client-side loading flash on first paint (T30's own scope); filtering
-  // (TXN-01) is TransactionListClient's own client-side state (T31).
-  return <TransactionListClient initialData={transactions} />
+  // Always renders TransactionListClient, even with zero transactions —
+  // the "Nova transação" FAB (and the ability to add the account's very
+  // first transaction) lives inside it, and previously only rendered when
+  // there was already at least one transaction to show.
+  return <TransactionListClient initialData={data.transactions} initialAccountId={data.accountId} />
 }

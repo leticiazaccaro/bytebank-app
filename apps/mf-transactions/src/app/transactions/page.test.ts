@@ -7,16 +7,17 @@ vi.mock('@repo/shared/auth', () => ({
   getSessionToken: vi.fn(),
 }))
 // T44-equivalent: preserves the real `ApiClientError` class (page.tsx now
-// does an `instanceof` check against it) while still mocking fetchStatement.
+// does an `instanceof` check against it) while still mocking fetchStatement
+// and fetchAccountId (fetched in parallel with the statement — T65).
 vi.mock('@repo/shared/apiClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@repo/shared/apiClient')>()
-  return { ...actual, fetchStatement: vi.fn() }
+  return { ...actual, fetchStatement: vi.fn(), fetchAccountId: vi.fn() }
 })
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))
 
-import { ApiClientError, fetchStatement } from '@repo/shared/apiClient'
+import { ApiClientError, fetchAccountId, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
 import { redirect } from 'next/navigation'
 import type { Transaction } from '@repo/shared/types'
@@ -46,6 +47,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
 
 beforeEach(() => {
   vi.mocked(getSessionToken).mockResolvedValue('jwt-abc')
+  vi.mocked(fetchAccountId).mockResolvedValue('acc-1')
 })
 
 afterEach(() => {
@@ -68,13 +70,15 @@ describe('TransactionsPage', () => {
     expect(html).toContain('80,00')
   })
 
-  it('renders an informative empty state for a new account with no transactions', async () => {
+  it('renders an informative empty state AND the "Nova transação" FAB for a new account with no transactions (regression: FAB used to be unreachable here)', async () => {
     vi.mocked(fetchStatement).mockResolvedValue([])
+    vi.mocked(fetchAccountId).mockResolvedValue('acc-new')
 
     const element = await TransactionsPage()
     const html = renderWithStore(element)
 
     expect(html).toContain('Você ainda não tem transações.')
+    expect(html).toContain('Nova transação')
   })
 
   it('renders a retry error state instead of crashing when the initial fetch fails (Edge Case: API fora do ar)', async () => {
