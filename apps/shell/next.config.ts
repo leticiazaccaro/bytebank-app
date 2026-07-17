@@ -22,6 +22,15 @@ const nextConfig: NextConfig = {
     return [
       { source: '/', destination: `${dashboardOrigin}/` },
       { source: '/dashboard/:path*', destination: `${dashboardOrigin}/dashboard/:path*` },
+      // The bare path needs its own exact-match rule ahead of the wildcard
+      // below: with no extra segments, `:path*` interpolates to an empty
+      // string, so the wildcard rule alone would proxy to
+      // `${transactionsOrigin}/transactions/` (trailing slash). mf-transactions
+      // then 308s that to its no-trailing-slash canonical form via a
+      // *relative* Location header — which the browser resolves against the
+      // shell's own origin (the only one it ever sees), re-triggering this
+      // same rewrite and looping forever.
+      { source: '/transactions', destination: `${transactionsOrigin}/transactions` },
       { source: '/transactions/:path*', destination: `${transactionsOrigin}/transactions/:path*` },
       // T60: each zone's assetPrefix (T19/T25) serves its static JS/CSS
       // under its own "-static" path to avoid colliding with the other
