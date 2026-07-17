@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ApiClientError, createTransaction, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
+import { ATTACHMENT_TOO_LARGE_MESSAGE } from './errorMessages'
 
 // API-01: reads the session cookie directly (this zone is same-origin from
 // the browser's perspective, via the shell's server-side rewrite — see
@@ -46,6 +47,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ApiClientError && error.status === 401) {
       return NextResponse.json({ message: 'Sessão expirada.' }, { status: 401 })
+    }
+    if (error instanceof ApiClientError && error.status === 413) {
+      return NextResponse.json({ message: ATTACHMENT_TOO_LARGE_MESSAGE }, { status: 413 })
     }
     if (error instanceof ApiClientError && error.status >= 400 && error.status < 500) {
       return NextResponse.json({ message: error.message }, { status: error.status })

@@ -139,4 +139,19 @@ describe('POST /api/transactions', () => {
     const body = (await response.json()) as { message: string }
     expect(body.message).not.toContain('network down')
   })
+
+  // FORM-09: a 413 is a real 4xx, but the upstream's raw message ("Payload
+  // Too Large") is an implementation detail, not something to relay
+  // verbatim like the other 4xx passthrough case above.
+  it('translates a 413 (oversized attachment) into a friendly PT-BR message instead of relaying the raw upstream text', async () => {
+    mockCookie('jwt-abc')
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(413, { message: 'Payload Too Large' }))
+
+    const response = await POST(postRequest({ ...validInput, urlAnexo: 'data:application/pdf;base64,...' }))
+
+    expect(response.status).toBe(413)
+    const body = (await response.json()) as { message: string }
+    expect(body.message).not.toBe('Payload Too Large')
+    expect(body.message).toContain('anexo')
+  })
 })

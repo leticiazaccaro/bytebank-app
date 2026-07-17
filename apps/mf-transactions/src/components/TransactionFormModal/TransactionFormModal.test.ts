@@ -202,7 +202,14 @@ describe('TransactionFormModal (create mode)', () => {
   it('shows a visible error banner and keeps the modal open when the create mutation fails (FORM-09)', async () => {
     const store = makeTestStore()
     const onClose = vi.fn()
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(413, { message: 'Payload Too Large' }))
+    // The message here is whatever this zone's own /api/transactions Route
+    // Handler already normalized it to (see route.test.ts's own 413 test for
+    // why it's not the raw upstream "Payload Too Large" text) — this test's
+    // concern is only that the component displays it visibly, not where it
+    // came from.
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse(413, { message: 'O anexo é grande demais para o servidor aceitar. Tente um arquivo menor ou sem anexo.' })
+    )
 
     renderModal(store, { isOpen: true, onClose, accountId: 'acc-1' })
 
@@ -220,7 +227,7 @@ describe('TransactionFormModal (create mode)', () => {
       await Promise.resolve()
     })
 
-    expect(document.body.textContent).toContain('Payload Too Large')
+    expect(document.body.textContent).toContain('grande demais')
     expect(document.querySelector('[role="dialog"]')).not.toBeNull()
     expect(onClose).not.toHaveBeenCalled()
   })

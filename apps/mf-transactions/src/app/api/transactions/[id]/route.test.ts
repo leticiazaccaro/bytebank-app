@@ -95,6 +95,20 @@ describe('PUT /api/transactions/:id', () => {
     const body = (await response.json()) as { message: string }
     expect(body.message).not.toContain('network down')
   })
+
+  // FORM-09: same translation as POST /api/transactions — see that test for
+  // why the raw upstream message isn't relayed verbatim here.
+  it('translates a 413 (oversized attachment) into a friendly PT-BR message instead of relaying the raw upstream text', async () => {
+    mockCookie('jwt-abc')
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(413, { message: 'Payload Too Large' }))
+
+    const response = await PUT(putRequest({ urlAnexo: 'data:application/pdf;base64,...' }), ctx('t1'))
+
+    expect(response.status).toBe(413)
+    const body = (await response.json()) as { message: string }
+    expect(body.message).not.toBe('Payload Too Large')
+    expect(body.message).toContain('anexo')
+  })
 })
 
 describe('DELETE /api/transactions/:id', () => {
