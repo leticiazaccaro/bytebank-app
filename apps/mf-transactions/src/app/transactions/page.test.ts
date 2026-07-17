@@ -6,12 +6,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@repo/shared/auth', () => ({
   getSessionToken: vi.fn(),
 }))
-vi.mock('@repo/shared/apiClient', () => ({
-  fetchStatement: vi.fn(),
+// T44-equivalent: preserves the real `ApiClientError` class (page.tsx now
+// does an `instanceof` check against it) while still mocking fetchStatement.
+vi.mock('@repo/shared/apiClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@repo/shared/apiClient')>()
+  return { ...actual, fetchStatement: vi.fn() }
+})
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(),
 }))
 
-import { fetchStatement } from '@repo/shared/apiClient'
+import { ApiClientError, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
+import { redirect } from 'next/navigation'
 import type { Transaction } from '@repo/shared/types'
 import { makeStore } from '@/store/store'
 import TransactionsPage from './page'
@@ -71,10 +78,19 @@ describe('TransactionsPage', () => {
   })
 
   it('renders a retry error state instead of crashing when the initial fetch fails (Edge Case: API fora do ar)', async () => {
-    vi.mocked(fetchStatement).mockRejectedValue(new Error('network down'))
+    vi.mocked(fetchStatement).mockRejectedValue(new ApiClientError(502, 'upstream unavailable'))
 
     const element = await TransactionsPage()
 
+    expect(redirect).not.toHaveBeenCalled()
     expect(element.props).toMatchObject({ role: 'alert' })
+  })
+
+  it('redirects to /login when the upstream API rejects the session as expired (AUTH-05)', async () => {
+    vi.mocked(fetchStatement).mockRejectedValue(new ApiClientError(401, 'jwt expired'))
+
+    await TransactionsPage()
+
+    expect(redirect).toHaveBeenCalledWith('/login')
   })
 })

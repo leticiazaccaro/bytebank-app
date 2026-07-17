@@ -1,4 +1,5 @@
-import { fetchStatement } from '@repo/shared/apiClient'
+import { redirect } from 'next/navigation'
+import { ApiClientError, fetchStatement } from '@repo/shared/apiClient'
 import { getSessionToken } from '@repo/shared/auth'
 import type { Transaction } from '@repo/shared/types'
 import { TransactionListClient } from '@/components/TransactionListClient'
@@ -20,7 +21,14 @@ export default async function TransactionsPage() {
 
   try {
     transactions = await loadTransactions()
-  } catch {
+  } catch (error) {
+    // AUTH-05: same 401-vs-network distinction as mf-dashboard's page.tsx
+    // (T44) — an expired/invalid session sends the user to log in again
+    // instead of stranding them on a retry state that can never succeed.
+    if (error instanceof ApiClientError && error.status === 401) {
+      redirect('/login')
+    }
+
     return (
       <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
         <p className="text-neutral-600">
