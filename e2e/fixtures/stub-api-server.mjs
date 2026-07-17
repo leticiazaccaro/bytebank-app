@@ -175,6 +175,6 @@ const server = createServer(async (req, res) => {
 })
 
 server.listen(PORT, () => {
-  // eslint-disable-next-line no-console
+   
   console.log(`[stub-api-fixture] listening on http://localhost:${PORT} (test fixture, not production code)`)
 })

@@ -39,6 +39,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local notes (not part of the deliverable)
+/notes/
+
 # local tooling (not part of the deliverable)
 .claude/
 .agents/

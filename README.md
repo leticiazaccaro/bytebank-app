@@ -35,6 +35,28 @@ DEPLOY.md                # Passo a passo de deploy multi-projeto na Vercel
 
 Navegação **dentro** de uma zona é soft (client-side); navegação **entre** zonas (ex.: Home → Transações) é uma hard navigation (recarrega a página) — trade-off da arquitetura Multi-Zones.
 
+### Por que Next.js Multi-Zones em vez de Single-SPA/Module Federation
+
+O desafio cita "Single SPA ou Module Federation" para a integração dos microfrontends.
+Optamos por **Next.js Multi-Zones** em vez disso, por decisão técnica deliberada:
+
+- **Single-SPA** não tem adaptador oficial/mantido para o Next.js App Router (o único
+  PoC encontrado na pesquisa tinha 2 commits e estava abandonado).
+- **Module Federation** para Next.js está em processo de descontinuação pelo próprio
+  time do framework.
+- **Multi-Zones** é o padrão oficial documentado pelo time Next.js/Vercel exatamente
+  para este cenário — múltiplos apps Next.js independentes, com build e deploy
+  próprios, unidos sob o mesmo domínio — e é reconhecido na literatura de
+  microfrontends como uma estratégia válida de composição via roteamento de borda
+  (Martin Fowler, "Micro Frontends").
+
+O PDF cita Single-SPA/Module Federation no contexto de integrar **frameworks
+diferentes** (ex.: React + Angular), o que não é o caso desta aplicação — todas as
+zonas são Next.js. O trade-off aceito é que a navegação **entre** zonas é uma hard
+navigation (recarrega a página), em vez de composição de componentes na mesma página;
+dentro de cada zona a navegação continua soft (client-side). Decisão registrada em
+`.specs/STATE.md` (AD-001).
+
 ## Stack
 
 | Tecnologia | Versão | Uso |
