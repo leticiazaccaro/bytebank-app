@@ -135,7 +135,9 @@ describe('TransactionFormModal — category persistence (FORM-04)', () => {
       document.body.querySelector('#transaction-description') as HTMLInputElement,
       'Mercado da esquina'
     )
-    setInputValue(document.body.querySelector('#transaction-value') as HTMLInputElement, '45')
+    // FORM-08: the value field is masked — typing digit-by-digit "4500"
+    // (not "45") is what produces "45,00".
+    setInputValue(document.body.querySelector('#transaction-value') as HTMLInputElement, '4500')
 
     await act(async () => {
       submitForm(document.body)

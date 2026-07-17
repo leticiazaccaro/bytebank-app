@@ -55,6 +55,19 @@ describe('transactionFormSchema', () => {
     }
   })
 
+  it('strips thousands separators before parsing a masked value (FORM-08)', () => {
+    const result = transactionFormSchema.safeParse({
+      type: 'Credit',
+      description: 'Salário',
+      value: '12.345,67',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.value).toBe(12345.67)
+    }
+  })
+
   it('accepts a fully valid payload', () => {
     const result = transactionFormSchema.safeParse({
       type: 'Credit',

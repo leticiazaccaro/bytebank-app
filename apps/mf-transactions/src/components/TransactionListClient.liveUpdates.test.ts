@@ -179,7 +179,9 @@ describe('TransactionListClient — live cache updates after mutations (API-02, 
       findButtonByAriaLabel('Editar transação de Mercado').click()
     })
 
-    setInputValue(document.body.querySelector('#transaction-value') as HTMLInputElement, '999')
+    // FORM-08: the value field is masked (cents-first) — "99900" is what
+    // produces "999,00", not "999".
+    setInputValue(document.body.querySelector('#transaction-value') as HTMLInputElement, '99900')
 
     await act(async () => {
       const form = document.querySelector('[role="dialog"] form')!

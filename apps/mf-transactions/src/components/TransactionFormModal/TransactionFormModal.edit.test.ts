@@ -99,7 +99,9 @@ describe('TransactionFormModal — edit mode pre-fill (FORM-07)', () => {
     expect((document.body.querySelector('#transaction-description') as HTMLInputElement).value).toBe(
       'Mercado da esquina'
     )
-    expect((document.body.querySelector('#transaction-value') as HTMLInputElement).value).toBe('45')
+    // FORM-08: pre-filled already in the masked shape ("45" -> "45,00"), not
+    // the raw number.
+    expect((document.body.querySelector('#transaction-value') as HTMLInputElement).value).toBe('45,00')
     expect((document.body.querySelector('#transaction-category') as HTMLSelectElement).value).toBe('lazer')
     expect(document.body.textContent).toContain('nota-fiscal.pdf')
     expect(document.body.textContent).toContain('Editar transação')

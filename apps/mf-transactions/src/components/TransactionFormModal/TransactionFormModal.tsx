@@ -12,6 +12,7 @@ import { getCategoryIndex, setCategoryForTransaction } from '@repo/shared/catego
 import type { CategoryId, Transaction } from '@repo/shared/types'
 import { useCreateTransactionMutation, useUpdateTransactionMutation } from '@/store/transactionsApi'
 import { AttachmentField, type AttachmentPayload } from './AttachmentField'
+import { maskCurrencyInput } from './currencyMask'
 import { transactionFormSchema, type TransactionFormInput } from './schema'
 
 // Visual base: src/components/features/TransactionForm/TransactionForm.tsx,
@@ -47,8 +48,11 @@ function initialDescription(transaction?: Transaction): string {
   return transaction ? (transaction.from ?? transaction.to ?? '') : ''
 }
 
+// FORM-08: pre-fills edit mode already in the masked "1.234,56" shape, so it
+// matches what typing produces instead of showing a raw unmasked number.
 function initialValue(transaction?: Transaction): string {
-  return transaction ? String(transaction.value) : ''
+  if (!transaction) return ''
+  return maskCurrencyInput(String(Math.round(Math.abs(transaction.value) * 100)))
 }
 
 function initialCategoryId(transaction?: Transaction): CategoryId {
@@ -184,7 +188,7 @@ export function TransactionFormModal({ isOpen, onClose, accountId, transaction }
           placeholder="0,00"
           value={value}
           error={errors.value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => setValue(maskCurrencyInput(event.target.value))}
         />
 
         <Select

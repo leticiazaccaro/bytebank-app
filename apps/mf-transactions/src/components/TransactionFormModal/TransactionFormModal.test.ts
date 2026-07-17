@@ -127,7 +127,12 @@ describe('TransactionFormModal (create mode)', () => {
     expect(region?.textContent).toContain('Informe o valor.')
   })
 
-  it('blocks submit and shows a field error for a non-numeric value (FORM-02)', () => {
+  // FORM-08: the field masks its value as the user types, stripping any
+  // non-digit character — typing letters leaves it empty rather than
+  // producing a non-numeric string, so this now blocks on the "required"
+  // message. The non-numeric-value code path (FORM-02) itself is still
+  // covered directly at the schema level in schema.test.ts.
+  it('blocks submit and shows a field error when only non-digit characters are typed into the value field (FORM-01/FORM-08)', () => {
     const store = makeTestStore()
     const onClose = vi.fn()
 
@@ -141,7 +146,7 @@ describe('TransactionFormModal (create mode)', () => {
       clickSubmit(document.body)
     })
 
-    expect(document.body.textContent).toContain('Informe um valor numérico válido.')
+    expect(document.body.textContent).toContain('Informe o valor.')
     expect(fetch).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
   })

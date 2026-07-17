@@ -16,7 +16,11 @@ export const transactionFormSchema = z.object({
       message: 'Informe o valor.',
     })
     .transform((raw, ctx) => {
-      const numeric = typeof raw === 'number' ? raw : Number(String(raw).replace(',', '.'))
+      // FORM-08: the field applies a BRL currency mask (thousands "." +
+      // decimal ",") — strip thousands separators before swapping the
+      // decimal comma for a dot, or "1.234,56" would parse as NaN.
+      const numeric =
+        typeof raw === 'number' ? raw : Number(String(raw).replace(/\./g, '').replace(',', '.'))
       if (Number.isNaN(numeric)) {
         ctx.addIssue({ code: 'custom', message: 'Informe um valor numérico válido.' })
         return z.NEVER
