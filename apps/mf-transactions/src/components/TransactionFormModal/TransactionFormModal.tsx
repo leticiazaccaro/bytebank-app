@@ -11,6 +11,7 @@ import { CATEGORIES, suggestCategory } from '@repo/shared/categories'
 import { getCategoryIndex, setCategoryForTransaction } from '@repo/shared/categoryIndex'
 import type { CategoryId, Transaction } from '@repo/shared/types'
 import { useCreateTransactionMutation, useUpdateTransactionMutation } from '@/store/transactionsApi'
+import { extractUiErrorMessage, type RtkQueryErrorPayload } from '@/store/errorMiddleware'
 import { AttachmentField, type AttachmentPayload } from './AttachmentField'
 import { maskCurrencyInput } from './currencyMask'
 import { transactionFormSchema, type TransactionFormInput } from './schema'
@@ -95,6 +96,12 @@ export function TransactionFormModal({ isOpen, onClose, accountId, transaction }
     initialAttachment(transaction)
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
+  // FORM-09: a failed create/update (e.g. a 413 from an oversized attachment,
+  // a validation 4xx the schema didn't already catch, a network/5xx error)
+  // used to only reach the sr-only LiveRegion further down — announced to
+  // screen readers, but with no visible feedback at all, leaving the modal
+  // looking like it silently did nothing. This is the visible counterpart.
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [createTransaction, { isLoading: isCreating }] = useCreateTransactionMutation()
   const [updateTransaction, { isLoading: isUpdating }] = useUpdateTransactionMutation()
   const isEditMode = Boolean(transaction)
@@ -131,6 +138,7 @@ export function TransactionFormModal({ isOpen, onClose, accountId, transaction }
     }
 
     setErrors({})
+    setSubmitError(null)
     const payload = buildTransactionInput(result.data, accountId, attachment)
 
     try {
@@ -144,9 +152,11 @@ export function TransactionFormModal({ isOpen, onClose, accountId, transaction }
       }
       resetForm()
       onClose()
-    } catch {
-      // 401/network-error handling is wired globally in a later task (T43) —
-      // this task's scope is the local validation + happy-path submit flow.
+    } catch (error) {
+      // FORM-09: the global error middleware (T43) also records this to
+      // uiError.message for its sr-only LiveRegion announcement elsewhere —
+      // this is the visible counterpart, scoped to this modal.
+      setSubmitError(extractUiErrorMessage(error as RtkQueryErrorPayload))
     }
   }
 
@@ -203,6 +213,15 @@ export function TransactionFormModal({ isOpen, onClose, accountId, transaction }
         />
 
         <AttachmentField value={attachment} onChange={setAttachment} />
+
+        {/* FORM-09: visible counterpart to the sr-only LiveRegion announcement
+            above — a failed submit (e.g. an oversized attachment rejected by
+            the server, a network error) must be seen, not just announced. */}
+        {submitError && (
+          <p className="rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm font-medium text-danger">
+            {submitError}
+          </p>
+        )}
 
         <div className="flex gap-2 pt-2 justify-end">
           <Button type="button" variant="ghost" onClick={onClose}>

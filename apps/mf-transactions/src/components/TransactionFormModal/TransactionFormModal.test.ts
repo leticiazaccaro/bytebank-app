@@ -194,4 +194,34 @@ describe('TransactionFormModal (create mode)', () => {
     })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  // FORM-09: a failed mutation (e.g. a 413 from an oversized attachment)
+  // previously only reached a sr-only LiveRegion — announced to screen
+  // readers, with no visible feedback for sighted users. The modal stayed
+  // open looking like it had silently done nothing.
+  it('shows a visible error banner and keeps the modal open when the create mutation fails (FORM-09)', async () => {
+    const store = makeTestStore()
+    const onClose = vi.fn()
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(413, { message: 'Payload Too Large' }))
+
+    renderModal(store, { isOpen: true, onClose, accountId: 'acc-1' })
+
+    setSelectValue(document.body.querySelector('#transaction-type') as HTMLSelectElement, 'Credit')
+    setInputValue(
+      document.body.querySelector('#transaction-description') as HTMLInputElement,
+      'Uber para o trabalho'
+    )
+    setInputValue(document.body.querySelector('#transaction-value') as HTMLInputElement, '15050')
+
+    await act(async () => {
+      clickSubmit(document.body)
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(document.body.textContent).toContain('Payload Too Large')
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
+  })
 })

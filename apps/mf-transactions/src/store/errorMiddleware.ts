@@ -6,12 +6,19 @@ import type { Middleware, PayloadAction, UnknownAction } from '@reduxjs/toolkit'
 // normalizes that case to a plain `401` (see apps/mf-transactions/src/app/api/
 // transactions/route.ts and [id]/route.ts). Any other failure (network
 // error, 5xx, 4xx validation) surfaces as a generic message instead.
-interface RtkQueryErrorPayload {
+export interface RtkQueryErrorPayload {
   status?: number | string
   data?: { message?: string }
 }
 
-const FALLBACK_ERROR_MESSAGE = 'Ocorreu um erro. Tente novamente.'
+export const FALLBACK_ERROR_MESSAGE = 'Ocorreu um erro. Tente novamente.'
+
+// Shared with TransactionFormModal's own submit-error banner — same
+// upstream error shape, same "prefer the server's message, fall back to a
+// generic one" rule.
+export function extractUiErrorMessage(payload?: RtkQueryErrorPayload): string {
+  return payload?.data?.message ?? FALLBACK_ERROR_MESSAGE
+}
 
 interface UiErrorState {
   message: string | null
@@ -61,7 +68,7 @@ export function createErrorMiddleware(deps: ErrorMiddlewareDeps): Middleware {
       if (payload?.status === 401) {
         deps.onSessionExpired()
       } else {
-        api.dispatch(setError(payload?.data?.message ?? FALLBACK_ERROR_MESSAGE))
+        api.dispatch(setError(extractUiErrorMessage(payload)))
       }
     }
     return next(action)
