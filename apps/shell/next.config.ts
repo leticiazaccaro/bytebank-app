@@ -49,6 +49,12 @@ const nextConfig: NextConfig = {
       // shell's origin — the only origin the browser ever sees. Without
       // this rewrite those calls hit the shell itself (no such route)
       // instead of the zone that owns them.
+      //
+      // Same bare-path-before-wildcard split as /transactions above: GET
+      // (list) and POST (create) hit the exact "/api/transactions" path with
+      // no id segment, which the wildcard alone would proxy to a
+      // trailing-slash destination and redirect-loop.
+      { source: '/api/transactions', destination: `${transactionsOrigin}/api/transactions` },
       {
         source: '/api/transactions/:path*',
         destination: `${transactionsOrigin}/api/transactions/:path*`,
